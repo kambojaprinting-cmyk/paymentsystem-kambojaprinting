@@ -87,7 +87,6 @@
 
     <script>
         let targetNominal = 0;
-        // URL Apps Script Kakak resmi
         const serverUrl = "https://script.google.com/macros/s/AKfycbydZz2Ylxoozb2uIUXoTG5on3Eyf-BVci6VKLri4VBePemlt7gq1bVWqvK4UH3Ow-oVKg/exec";
         
         const formatRupiah = (angka) => {
@@ -96,8 +95,6 @@
 
         function jalankanKalkulasiAwal() {
             const urlParams = new URLSearchParams(window.location.search);
-            
-            // PERBAIKAN: Membaca harga murni langsung dari URL browser (?harga=10172)
             const hargaDasarInput = parseInt(urlParams.get('harga')) || 0;
             
             if (hargaDasarInput > 0) {
@@ -117,7 +114,7 @@
             fetch(`${serverUrl}?check_nominal=${targetNominal}`)
                 .then(response => response.json())
                 .then(data => {
-                    if (data && (data.status === "PAID" || data.status === "SUCCESS" || data.status === "LUNAS")) {
+                    if (data && data.status === "SUCCESS") {
                         prosesPembayaranSukses();
                     }
                 }).catch(()=>{});
