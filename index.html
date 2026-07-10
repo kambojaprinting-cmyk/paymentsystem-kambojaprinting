@@ -209,7 +209,7 @@ function kirimWhatsApp(target, pesan, urlMedia) {
     formData.append('target', target);
     formData.append('message', pesan);
     
-    // Jika parameter urlMedia berisi link gambar dari Google Drive, masukkan ke form parameter 'url' Fonnte
+    // PERBAIKAN: Menggunakan variabel urlMedia yang benar agar link Google Drive terkirim ke Fonnte
     if (urlMedia && urlMedia !== "") {
         formData.append('url', urlMedia); 
     }
@@ -218,14 +218,15 @@ function kirimWhatsApp(target, pesan, urlMedia) {
 
     fetch('https://api.fonnte.com/send', {
         method: 'POST',
-        headers: { 'Authorization': waToken },
+        headers: {
+            'Authorization': waToken
+        },
         body: formData
     })
     .then(res => res.json())
     .then(data => console.log('Respon WA:', data))
     .catch(err => console.error('Gagal kirim:', err));
 }
-
         function eksekusiSalin(text) {
             const el = document.createElement('textarea');
             el.value = text;
