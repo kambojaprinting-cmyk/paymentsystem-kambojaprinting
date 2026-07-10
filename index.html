@@ -163,7 +163,7 @@
 
     // 2. Cari gambar kwitansi di Drive & Kirim otomatis ke WA Pelanggan beserta Gambar
     if (nomorInvoice !== "" && nomorPelanggan !== "") {
-        fetch(`${serverUrl}?cari_invoice=${nomorInvoice}`)
+        fetch(`${serverUrl}?cari_invoice=${encodeURIComponent(nomorInvoice.trim())}`)
             .then(res => res.json())
             .then(resData => {
                 // PENTING: Jika file ditemukan di Drive, kirim pesan BESERTA link gambarnya di parameter ketiga
@@ -209,9 +209,9 @@ function kirimWhatsApp(target, pesan, urlMedia) {
     formData.append('target', target);
     formData.append('message', pesan);
     
-    // Kirim URL media jika ada tautan dari Google Drive
+    // PERBAIKAN: Fonnte menggunakan parameter 'file' untuk mengirim gambar/media link
     if (urlMedia && urlMedia.trim() !== "") {
-        formData.append('url', urlMedia); 
+        formData.append('file', urlMedia); 
     }
     
     formData.append('delay', '2'); 
@@ -219,7 +219,7 @@ function kirimWhatsApp(target, pesan, urlMedia) {
     fetch('https://api.fonnte.com/send', {
         method: 'POST',
         headers: {
-            'Authorization': waToken // Token Fonnte Kakak
+            'Authorization': waToken
         },
         body: formData
     })
@@ -228,7 +228,9 @@ function kirimWhatsApp(target, pesan, urlMedia) {
         console.log('Respon Pengiriman WA:', data);
     })
     .catch(err => console.error('Gagal melakukan hit API Fonnte:', err));
-}        function eksekusiSalin(text) {
+}
+
+        function eksekusiSalin(text) {
             const el = document.createElement('textarea');
             el.value = text;
             el.setAttribute('readonly', ''); el.style.position = 'absolute'; el.style.left = '-9999px';
