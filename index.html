@@ -92,7 +92,7 @@
         let nomorPelanggan = ""; 
         const nomorOwner = "6289515881309"; // SUDAH DIUBAH KE FORMAT 62
         const waToken = "jyF86YMQm7zncPX1xfrF"; 
-        const serverUrl = "https://script.google.com/macros/s/AKfycbxvB8rp5L2PXyfCb_IZGGgQc9XXnTRuVoLigIpyapvwiOOyJV6EVXvafmC7-d1NxQDl/exec";
+        const serverUrl = "https://script.google.com/macros/s/AKfycbydZz2Ylxoozb2uIUXoTG5on3Eyf-BVci6VKLri4VBePemlt7gq1bVWqvK4UH3Ow-oVKg/exec";
 
         const formatRupiah = (angka) => {
             return "Rp " + angka.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ".");
@@ -135,11 +135,13 @@
         const checkInterval = setInterval(() => {
             if (targetNominal <= 0) return; 
 
-            fetch(`${serverUrl}?check_nominal=${targetNominal}`)
+            // Tambahkan &invoice_id agar Apps Script tahu nomor invoice mana yang dicari
+            fetch(`${serverUrl}?check_nominal=${targetNominal}&invoice_id=${noInvoice}`)
                 .then(response => response.json())
                 .then(data => {
                     if (data && data.status === "SUCCESS") {
-                        prosesPembayaranSukses();
+                        // Teruskan url download ke fungsi sukses
+                        prosesPembayaranSukses(data.download_url);
                     }
                 }).catch(()=>{});
         }, 4000);
@@ -157,14 +159,23 @@
             modal.classList.add('opacity-0', 'pointer-events-none');
         }
 
-        function prosesPembayaranSukses() {
+        function prosesPembayaranSukses(downloadUrl) {
             clearInterval(checkInterval);
             tutupModalQRIS(); 
             
-            // Kirim WhatsApp otomatis (Sekarang format nomor sudah pasti benar 62)
-            kirimWhatsApp(nomorPelanggan, `Halo, Terima kasih atas kepercayaan anda kepada Kamboja Printing. Pembayaran sebesar ${formatRupiah(targetNominal)} telah kami terima dan pesanan Anda sedang diproses.`);
-            kirimWhatsApp(nomorOwner, `NOTIFIKASI INTERNAL KAMBOJA PRINTING:\nPembayaran baru masuk sebesar ${formatRupiah(targetNominal)} dari nomor pelanggan (${nomorPelanggan || 'Tanpa Nomor'}). Status: BERHASIL LUNAS.`);
+            // Menggunakan url dari server, jika kosong otomatis arahkan ke folder utama
+            const finalDownloadLink = downloadUrl || "https://drive.google.com/drive/folders/1NLtMxS5Xj2V7C43UGgwpppQR88UKegw6";
 
+            // Format Pesan WhatsApp persis seperti permintaan Anda
+            const pesanWA = `Halo, Terima kasih atas kepercayaan Anda kepada Kamboja Printing. Pembayaran sebesar ${formatRupiah(targetNominal)} telah kami terima untuk Invoice: ${noInvoice}. silahkan klik link berikut ini untuk download kwitansi anda : ${finalDownloadLink}`;
+            
+            // Kirim WhatsApp otomatis ke pelanggan
+            kirimWhatsApp(nomorPelanggan, pesanWA);
+            
+            // Notifikasi internal untuk owner
+            kirimWhatsApp(nomorOwner, `NOTIFIKASI INTERNAL:\nPembayaran LUNAS untuk Invoice ${noInvoice} sebesar ${formatRupiah(targetNominal)}. Link file: ${finalDownloadLink}`);
+
+            // Tampilan sukses standar (tanpa tombol download tambahan di Vercel)
             document.body.innerHTML = `
                 <div class="flex items-center justify-center min-h-screen p-4 w-full">
                     <div class="bg-white p-6 rounded-2xl shadow-xl max-w-sm w-full text-center border border-gray-100">
@@ -174,7 +185,7 @@
                             </svg>
                         </div>
                         <h2 class="text-xl font-bold text-gray-800 mb-1">Pembayaran Sukses!</h2>
-                        <p class="text-gray-500 text-xs mb-5">Sistem mendeteksi pembayaran Anda.</p>
+                        <p class="text-gray-500 text-xs mb-4">Sistem mendeteksi pembayaran Anda.</p>
                         <p class="text-lg font-bold text-black border-t border-gray-100 pt-4 leading-snug">
                             Terima kasih atas kepercayaan anda kepada KAMBOJA Printing
                         </p>
