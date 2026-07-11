@@ -85,13 +85,13 @@
         let nomorPelanggan = ""; 
         const nomorOwner = "6289515881309"; // SUDAH DIUBAH KE FORMAT 62
         const waToken = "jyF86YMQm7zncPX1xfrF"; 
-        const serverUrl = "https://script.google.com/macros/s/AKfycbydZz2Ylxoozb2uIUXoTG5on3Eyf-BVci6VKLri4VBePemlt7gq1bVWqvK4UH3Ow-oVKg/exec";
+        const serverUrl = "https://script.google.com/macros/s/AKfycbxvB8rp5L2PXyfCb_IZGGgQc9XXnTRuVoLigIpyapvwiOOyJV6EVXvafmC7-d1NxQDl/exec";
 
         const formatRupiah = (angka) => {
             return "Rp " + angka.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ".");
         };
 
-        // FUNGSI PENGUBAH OTOMATIS KE FORMAT 62 (ASLI MILIK KAKAK)
+        // FUNGSI PENGUBAH OTOMATIS KE FORMAT 62
         function formatKe62(no) {
             if (!no) return "";
             let cleaned = no.replace(/[^0-9]/g, ''); // bersihkan karakter non-angka
@@ -154,18 +154,9 @@
             clearInterval(checkInterval);
             tutupModalQRIS(); 
             
-            // 1. KODE ASLI KAKAK (Fungsi kirim WA teks langsung dari browser yang terbukti jalan)
+            // Kirim WhatsApp otomatis (Sekarang format nomor sudah pasti benar 62)
             kirimWhatsApp(nomorPelanggan, `Halo, Terima kasih atas kepercayaan anda kepada Kamboja Printing. Pembayaran sebesar ${formatRupiah(targetNominal)} telah kami terima.`);
             kirimWhatsApp(nomorOwner, `NOTIFIKASI INTERNAL KAMBOJA PRINTING:\nPembayaran baru masuk sebesar ${formatRupiah(targetNominal)} dari nomor pelanggan (${nomorPelanggan || 'Tanpa Nomor'}). Status: BERHASIL.`);
-
-            // 2. SISIPAN LOGIKA BARU (Hanya menembak Google Script untuk mengirimkan link download invoice dari Drive)
-            const urlParams = new URLSearchParams(window.location.search);
-            const nomorInvoice = urlParams.get('invoice') || "";
-            if (nomorInvoice !== "" && nomorPelanggan !== "") {
-                const nominalTeks = formatRupiah(targetNominal);
-                fetch(`${serverUrl}?cari_invoice=${encodeURIComponent(nomorInvoice)}&nohp=${encodeURIComponent(nomorPelanggan)}&target_nominal=${encodeURIComponent(nominalTeks)}`)
-                    .catch(()=>{});
-            }
 
             document.body.innerHTML = `
                 <div class="flex items-center justify-center min-h-screen p-4 w-full">
