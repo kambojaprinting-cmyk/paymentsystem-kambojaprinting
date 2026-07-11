@@ -155,16 +155,36 @@
             clearInterval(checkInterval);
             tutupModalQRIS(); 
             
-            // Link Google Drive menuju folder kwitansi Anda
-            const linkKwitansi = `https://drive.google.com/drive/folders/${driveFolderId}`;
-            
-            // Susun template pesan dinamis ke pelanggan
-            const pesanPelanggan = `Halo kakak, Terima kasih atas kepercayaan Anda kepada Kamboja Printing. Pembayaran sebesar ${formatRupiah(targetNominal)} telah kami terima untuk Invoice: ${invoicePelanggan}.\n\nlink kwitansi : ${linkKwitansi}`;
-            
-            // Kirim pesan WhatsApp otomatis
-            kirimWhatsApp(nomorPelanggan, pesanPelanggan);
-            kirimWhatsApp(nomorOwner, `NOTIFIKASI INTERNAL KAMBOJA PRINTING:\nPembayaran baru masuk sebesar ${formatRupiah(targetNominal)} dari nomor pelanggan (${nomorPelanggan || 'Tanpa Nomor'}) untuk Invoice: ${invoicePelanggan}. Status: BERHASIL LUNAS.`);
+            // Tampilkan animasi loading sementara sistem mencari file kwitansi spesifik
+            document.getElementById("status-text").innerText = "Pembayaran sukses! Mengambil tautan kwitansi Anda...";
 
+            // Ambil link file spesifik dari Google Apps Script berdasarkan nomor invoice
+            fetch(`${serverUrl}?get_file_link=true&invoice_name=${encodeURIComponent(invoicePelanggan)}`)
+                .then(response => response.json())
+                .then(data => {
+                    const linkKwitansiSpesifik = data.link || `https://drive.google.com/drive/folders/${driveFolderId}`;
+                    
+                    // Susun template pesan dinamis ke pelanggan dengan link file spesifik
+                    const pesanPelanggan = `Halo kakak, Terima kasih atas kepercayaan Anda kepada Kamboja Printing. Pembayaran sebesar ${formatRupiah(targetNominal)} telah kami terima untuk Invoice: ${invoicePelanggan}.\n\nlink kwitansi : ${linkKwitansiSpesifik}`;
+                    
+                    // Kirim pesan WhatsApp otomatis
+                    kirimWhatsApp(nomorPelanggan, pesanPelanggan);
+                    kirimWhatsApp(nomorOwner, `NOTIFIKASI INTERNAL KAMBOJA PRINTING:\nPembayaran baru masuk sebesar ${formatRupiah(targetNominal)} dari nomor pelanggan (${nomorPelanggan || 'Tanpa Nomor'}) untuk Invoice: ${invoicePelanggan}. Status: BERHASIL LUNAS.`);
+
+                    // Ubah tampilan halaman menjadi Sukses Berhasil
+                    tampilkanHalamanSukses();
+                })
+                .catch(err => {
+                    console.error("Gagal mengambil link spesifik, menggunakan link folder:", err);
+                    // Jika gagal/error, fallback menggunakan link folder default agar sistem tidak macet
+                    const linkFallback = `https://drive.google.com/drive/folders/${driveFolderId}`;
+                    kirimWhatsApp(nomorPelanggan, `Halo kakak, Terima kasih atas kepercayaan Anda kepada Kamboja Printing. Pembayaran sebesar ${formatRupiah(targetNominal)} telah kami terima untuk Invoice: ${invoicePelanggan}.\n\nlink kwitansi : ${linkFallback}`);
+                    kirimWhatsApp(nomorOwner, `NOTIFIKASI INTERNAL (ERROR LINK):\nPembayaran ${formatRupiah(targetNominal)} sukses dari ${nomorPelanggan}, namun sistem gagal mencari link file spesifik.`);
+                    tampilkanHalamanSukses();
+                });
+        }
+
+        function tampilkanHalamanSukses() {
             document.body.innerHTML = `
                 <div class="flex items-center justify-center min-h-screen p-4 w-full">
                     <div class="bg-white p-6 rounded-2xl shadow-xl max-w-sm w-full text-center border border-gray-100">
