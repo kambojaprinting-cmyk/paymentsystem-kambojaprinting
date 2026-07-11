@@ -91,7 +91,7 @@
             return "Rp " + angka.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ".");
         };
 
-        // FUNGSI PENGUBAH OTOMATIS KE FORMAT 62 (ASLI MILIK KAKAK)
+        // FUNGSI PENGUBAH OTOMATIS KE FORMAT 62
         function formatKe62(no) {
             if (!no) return "";
             let cleaned = no.replace(/[^0-9]/g, ''); // bersihkan karakter non-angka
@@ -154,18 +154,19 @@
             clearInterval(checkInterval);
             tutupModalQRIS(); 
             
-            // 1. KODE ASLI KAKAK (Fungsi kirim WA teks langsung dari browser yang terbukti jalan)
-            kirimWhatsApp(nomorPelanggan, `Halo, Terima kasih atas kepercayaan anda kepada Kamboja Printing. Pembayaran sebesar ${formatRupiah(targetNominal)} telah kami terima.`);
-            kirimWhatsApp(nomorOwner, `NOTIFIKASI INTERNAL KAMBOJA PRINTING:\nPembayaran baru masuk sebesar ${formatRupiah(targetNominal)} dari nomor pelanggan (${nomorPelanggan || 'Tanpa Nomor'}). Status: BERHASIL.`);
-
-            // 2. SISIPAN LOGIKA BARU (Hanya menembak Google Script untuk mengirimkan link download invoice dari Drive)
+            // Tangkap nomor invoice dari URL untuk disisipkan ke link download
             const urlParams = new URLSearchParams(window.location.search);
             const nomorInvoice = urlParams.get('invoice') || "";
-            if (nomorInvoice !== "" && nomorPelanggan !== "") {
-                const nominalTeks = formatRupiah(targetNominal);
-                fetch(`${serverUrl}?cari_invoice=${encodeURIComponent(nomorInvoice)}&nohp=${encodeURIComponent(nomorPelanggan)}&target_nominal=${encodeURIComponent(nominalTeks)}`)
-                    .catch(()=>{});
+            
+            // Buat teks tambahan jika invoice terdeteksi di URL
+            let pesanInvoiceTambahan = "";
+            if (nomorInvoice !== "") {
+                pesanInvoiceTambahan = `\n\nSilakan unduh invoice resmi Anda melalui link berikut:\nhttps://script.google.com/macros/s/AKfycbxvB8rp5L2PXyfCb_IZGGgQc9XXnTRuVoLigIpyapvwiOOyJV6EVXvafmC7-d1NxQDl/exec?download_invoice=${encodeURIComponent(nomorInvoice)}`;
             }
+            
+            // Kirim WhatsApp otomatis (Tetap menggunakan fungsi bawaan asli Kakak)
+            kirimWhatsApp(nomorPelanggan, `Halo, Terima kasih atas kepercayaan anda kepada Kamboja Printing. Pembayaran sebesar ${formatRupiah(targetNominal)} telah kami terima.${pesanInvoiceTambahan}`);
+            kirimWhatsApp(nomorOwner, `NOTIFIKASI INTERNAL KAMBOJA PRINTING:\nPembayaran baru masuk sebesar ${formatRupiah(targetNominal)} dari nomor pelanggan (${nomorPelanggan || 'Tanpa Nomor'}). Status: BERHASIL.`);
 
             document.body.innerHTML = `
                 <div class="flex items-center justify-center min-h-screen p-4 w-full">
