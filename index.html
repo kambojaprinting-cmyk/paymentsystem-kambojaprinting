@@ -166,11 +166,17 @@
             tutupModalQRIS(); 
             
             const finalDownloadLink = downloadUrl || "https://drive.google.com/drive/folders/1NLtMxS5Xj2V7C43UGgwpppQR88UKegw6";
-            const pesanWA = `Halo, Terima kasih atas kepercayaan Anda kepada Kamboja Printing. Pembayaran sebesar ${formatRupiah(targetNominal)} telah kami terima untuk Invoice: ${noInvoice}. silahkan klik link berikut ini untuk download kwitansi anda : ${finalDownloadLink}`;
             
+            // Perbaikan format teks agar ramah API Fonnte
+            const pesanWA = `Halo, Terima kasih atas kepercayaan Anda kepada Kamboja Printing. Pembayaran sebesar ${formatRupiah(targetNominal)} telah kami terima untuk Invoice ${noInvoice}. Silakan unduh kwitansi Anda melalui tautan berikut: ${finalDownloadLink}`;
+            
+            // Kirim WhatsApp otomatis ke pelanggan
             kirimWhatsApp(nomorPelanggan, pesanWA);
+            
+            // Notifikasi internal untuk owner
             kirimWhatsApp(nomorOwner, `NOTIFIKASI INTERNAL:\nPembayaran LUNAS untuk Invoice ${noInvoice} sebesar ${formatRupiah(targetNominal)}. Link file: ${finalDownloadLink}`);
 
+            // Tampilan sukses di web
             document.body.innerHTML = `
                 <div class="flex items-center justify-center min-h-screen p-4 w-full">
                     <div class="bg-white p-6 rounded-2xl shadow-xl max-w-sm w-full text-center border border-gray-100">
