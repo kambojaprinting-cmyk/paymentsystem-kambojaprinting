@@ -98,12 +98,21 @@
         };
 
         function formatKe62(no) {
-            if (!no) return "";
-            let cleaned = no.replace(/[^0-9]/g, '');
-            if (cleaned.startsWith('0')) { cleaned = '62' + cleaned.slice(1); }
-            else if (cleaned.startsWith('8')) { cleaned = '62' + cleaned; }
-            return cleaned;
-        }
+    if (!no) return "";
+    // Hapus semua karakter selain angka
+    let cleaned = no.replace(/[^0-9]/g, '');
+    
+    // Jika diawali '0', buang angka 0 di depan lalu ganti jadi '62'
+    if (cleaned.startsWith('0')) {
+        cleaned = '62' + cleaned.slice(1);
+    }
+    // Jika diawali '8', langsung tempel '62' di depannya
+    else if (cleaned.startsWith('8')) {
+        cleaned = '62' + cleaned;
+    }
+    
+    return cleaned;
+}
 
         function jalankanKalkulasiAwal() {
             const urlParams = new URLSearchParams(window.location.search);
@@ -158,18 +167,20 @@ function prosesPembayaranSukses() {
     clearInterval(checkInterval);
     tutupModalQRIS(); 
 
-    // 1. Kirim notifikasi teks pendek ke Internal Owner via Fonnte langsung dari browser
+    // 1. Kirim notifikasi internal Owner
     kirimWhatsApp(nomorOwner, `NOTIFIKASI INTERNAL KAMBOJA PRINTING:\nPembayaran masuk ${formatRupiah(targetNominal)} untuk Invoice: ${nomorInvoice}. Status: LUNAS.`, "");
 
-    // 2. Lempar perintah ke Google Apps Script agar Server Google yang mencantumkan Gambar & mengirimkannya ke WhatsApp Pelanggan
+    // 2. Tembak ke Google Apps Script untuk kirim WA ke pelanggan
     if (nomorInvoice !== "" && nomorPelanggan !== "") {
         const nominalTeksBerformat = formatRupiah(targetNominal);
-        fetch(`${serverUrl}?cari_invoice=${nomorInvoice}&nohp=${nomorPelanggan}&target_nominal=${encodeURIComponent(nominalTeksBerformat)}`)
+        
+        // Membuka jalur tembak murni dengan menyertakan invoice, nohp, dan nominal ke Google Apps Script
+        const urlTembakGoogle = `${serverUrl}?cari_invoice=${encodeURIComponent(nomorInvoice)}&nohp=${encodeURIComponent(nomorPelanggan)}&target_nominal=${encodeURIComponent(nominalTeksBerformat)}`;
+        
+        fetch(urlTembakGoogle)
             .then(res => res.json())
-            .then(resData => console.log('Respon Integrasi Server Google & Fonnte:', resData))
+            .then(resData => console.log('Respon Integrasi Server:', resData))
             .catch(err => console.error('Gagal memicu pengiriman server:', err));
-    } else if (nomorPelanggan !== "") {
-        kirimWhatsApp(nomorPelanggan, `Halo, Terima kasih atas kepercayaan Anda kepada Kamboja Printing. Pembayaran sebesar ${formatRupiah(targetNominal)} telah kami terima.`, "");
     }
 
     // Tampilan sukses di layar browser pelanggan
