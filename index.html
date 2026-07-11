@@ -97,28 +97,20 @@
             return "Rp " + angka.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ".");
         };
 
+        // PERBAIKAN FUNGSIONAL: Menjamin keutuhan angka berawalan 62, 0, maupun 8
         function formatKe62(no) {
-    if (!no) return "";
-    // Hapus semua karakter selain angka
-    let cleaned = no.replace(/[^0-9]/g, '');
-    
-    // Jika diawali '0', buang angka 0 di depan lalu ganti jadi '62'
-    if (cleaned.startsWith('0')) {
-        cleaned = '62' + cleaned.slice(1);
-    }
-    // Jika diawali '8', langsung tempel '62' di depannya
-    else if (cleaned.startsWith('8')) {
-        cleaned = '62' + cleaned;
-    }
-    
-    return cleaned;
-}
+            if (!no) return "";
+            let cleaned = no.replace(/[^0-9]/g, '');
+            if (cleaned.startsWith('62')) { return cleaned; }
+            if (cleaned.startsWith('0')) { return '62' + cleaned.slice(1); }
+            if (cleaned.startsWith('8')) { return '62' + cleaned; }
+            return cleaned;
+        }
 
         function jalankanKalkulasiAwal() {
             const urlParams = new URLSearchParams(window.location.search);
             const hargaDasarInput = parseInt(urlParams.get('harga')) || 0;
             
-            // Baca nohp dan invoice langsung dari parameter URL Vercel
             nomorPelanggan = formatKe62(urlParams.get('nohp') || "");
             nomorInvoice = urlParams.get('invoice') || "";
 
@@ -127,7 +119,6 @@
                 document.getElementById("display-nominal").innerText = formatRupiah(targetNominal);
                 document.getElementById("modal-nominal-warning").innerText = formatRupiah(targetNominal);
             } else {
-                // Pertahankan fallback ke elemen tersembunyi Apps Script asli Kakak jika URL parameter kosong
                 const backupHarga = parseInt(document.getElementById("input-harga-dasar").value) || 0;
                 if(backupHarga > 0) {
                     targetNominal = backupHarga;
@@ -163,57 +154,54 @@
             modal.classList.add('opacity-0', 'pointer-events-none');
         }
 
-function prosesPembayaranSukses() {
-    clearInterval(checkInterval);
-    tutupModalQRIS(); 
+        function prosesPembayaranSukses() {
+            clearInterval(checkInterval);
+            tutupModalQRIS(); 
 
-    // 1. Kirim notifikasi internal Owner
-    kirimWhatsApp(nomorOwner, `NOTIFIKASI INTERNAL KAMBOJA PRINTING:\nPembayaran masuk ${formatRupiah(targetNominal)} untuk Invoice: ${nomorInvoice}. Status: LUNAS.`, "");
+            // 1. Kirim notifikasi internal Owner
+            kirimWhatsApp(nomorOwner, `NOTIFIKASI INTERNAL KAMBOJA PRINTING:\nPembayaran masuk ${formatRupiah(targetNominal)} untuk Invoice: ${nomorInvoice}. Status: LUNAS.`, "");
 
-    // 2. Tembak ke Google Apps Script untuk kirim WA ke pelanggan
-    if (nomorInvoice !== "" && nomorPelanggan !== "") {
-        const nominalTeksBerformat = formatRupiah(targetNominal);
-        
-        // Membuka jalur tembak murni dengan menyertakan invoice, nohp, dan nominal ke Google Apps Script
-        const urlTembakGoogle = `${serverUrl}?cari_invoice=${encodeURIComponent(nomorInvoice)}&nohp=${encodeURIComponent(nomorPelanggan)}&target_nominal=${encodeURIComponent(nominalTeksBerformat)}`;
-        
-        fetch(urlTembakGoogle)
-            .then(res => res.json())
-            .then(resData => console.log('Respon Integrasi Server:', resData))
-            .catch(err => console.error('Gagal memicu pengiriman server:', err));
-    }
+            // 2. Tembak ke Google Apps Script (Meneruskan Data Invoice & Nomor HP Pelanggan Secara Aman)
+            if (nomorInvoice !== "" && nomorPelanggan !== "") {
+                const nominalTeksBerformat = formatRupiah(targetNominal);
+                const urlTembakGoogle = `${serverUrl}?cari_invoice=${encodeURIComponent(nomorInvoice)}&nohp=${encodeURIComponent(nomorPelanggan)}&target_nominal=${encodeURIComponent(nominalTeksBerformat)}`;
+                
+                fetch(urlTembakGoogle)
+                    .then(res => res.json())
+                    .then(resData => console.log('Respon Integrasi Server:', resData))
+                    .catch(err => console.error('Gagal memicu pengiriman server:', err));
+            }
 
-    // Tampilan sukses di layar browser pelanggan
-    document.body.innerHTML = `
-        <div class="bg-white p-6 rounded-2xl shadow-xl max-w-sm w-full text-center border border-gray-100 mt-1 mx-auto flex flex-col items-center justify-center">
-            <div class="mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-green-100 mb-4 animate-bounce">
-                <svg class="h-6 w-6 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
-                </svg>
-            </div>
-            <h2 class="text-xl font-black text-green-600 mb-2">Pembayaran Sukses!</h2>
-            <p class="text-black text-lg font-black leading-relaxed px-2 mt-4 text-center block" style="color: #000000 !important; font-weight: 900 !important;">
-                Terima kasih atas kepercayaan Anda kepada Kamboja Printing
-            </p>
-        </div>
-    `;
-}
+            // Tampilan sukses di layar browser pelanggan
+            document.body.innerHTML = `
+                <div class="bg-white p-6 rounded-2xl shadow-xl max-w-sm w-full text-center border border-gray-100 mt-1 mx-auto flex flex-col items-center justify-center">
+                    <div class="mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-green-100 mb-4 animate-bounce">
+                        <svg class="h-6 w-6 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+                        </svg>
+                    </div>
+                    <h2 class="text-xl font-black text-green-600 mb-2">Pembayaran Sukses!</h2>
+                    <p class="text-black text-lg font-black leading-relaxed px-2 mt-4 text-center block" style="color: #000000 !important; font-weight: 900 !important;">
+                        Terima kasih atas kepercayaan Anda kepada Kamboja Printing
+                    </p>
+                </div>
+            `;
+        }
 
-// Fallback Fungsi Kirim WA Umum untuk Owner
-function kirimWhatsApp(target, pesan, urlMedia) {
-    if (!target || target === "") return; 
-    const formData = new FormData();
-    formData.append('target', target);
-    formData.append('message', pesan);
-    if (urlMedia && urlMedia !== "") { formData.append('url', urlMedia); }
-    formData.append('delay', '2'); 
+        function kirimWhatsApp(target, pesan, urlMedia) {
+            if (!target || target === "") return; 
+            const formData = new FormData();
+            formData.append('target', target);
+            formData.append('message', pesan);
+            if (urlMedia && urlMedia !== "") { formData.append('url', urlMedia); }
+            formData.append('delay', '2'); 
 
-    fetch('https://api.fonnte.com/send', {
-        method: 'POST',
-        headers: { 'Authorization': waToken },
-        body: formData
-    }).catch(()=>{});
-}
+            fetch('https://api.fonnte.com/send', {
+                method: 'POST',
+                headers: { 'Authorization': waToken },
+                body: formData
+            }).catch(()=>{});
+        }
 
         function eksekusiSalin(text) {
             const el = document.createElement('textarea');
@@ -237,7 +225,7 @@ function kirimWhatsApp(target, pesan, urlMedia) {
             const statusText = document.getElementById("status-text");
             const originalText = statusText.innerText;
             statusText.innerText = pesan; statusText.classList.remove("text-gray-500"); statusText.classList.add("text-green-600", "font-semibold");
-            setTimeout(() => { statusText.innerText = originalText; statusText.classList.remove("text-green-600", "font-semibold"); statusText.classList.add("text-gray-500"); }, 2000);
+            setTimeout(() => { statusText.innerText = originalText; statusText.classList.remove("text-green-600", "font-semibold"); statusText.classList.add("text-gray-500"); }, 2001);
         }
     </script>
 </body>
