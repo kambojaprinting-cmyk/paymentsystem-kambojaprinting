@@ -155,7 +155,7 @@
             tutupModalQRIS(); 
             
             // Kirim WhatsApp otomatis (Sekarang format nomor sudah pasti benar 62)
-            kirimWhatsApp(nomorPelanggan, `Halo, Terima kasih atas kepercayaan anda kepada Kamboja Printing. Pembayaran sebesar ${formatRupiah(targetNominal)} telah kami terima dan pesanan Anda sedang diproses.`);
+            kirimWhatsApp(nomorPelanggan, `Halo, Terima kasih atas kepercayaan anda kepada Kamboja Printing. Pembayaran sebesar ${formatRupiah(targetNominal)} telah kami terima.`);
             kirimWhatsApp(nomorOwner, `NOTIFIKASI INTERNAL KAMBOJA PRINTING:\nPembayaran baru masuk sebesar ${formatRupiah(targetNominal)} dari nomor pelanggan (${nomorPelanggan || 'Tanpa Nomor'}). Status: BERHASIL.`);
 
             document.body.innerHTML = `
