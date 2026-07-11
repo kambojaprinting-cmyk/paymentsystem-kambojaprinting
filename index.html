@@ -90,7 +90,8 @@
     <script>
         let targetNominal = 0;
         let nomorPelanggan = ""; 
-        const nomorOwner = "6289515881309"; // SUDAH DIUBAH KE FORMAT 62
+        let noInvoice = ""; // Tambahkan deklarasi variabel invoice global
+        const nomorOwner = "6289515881309"; 
         const waToken = "jyF86YMQm7zncPX1xfrF"; 
         const serverUrl = "https://script.google.com/macros/s/AKfycbydZz2Ylxoozb2uIUXoTG5on3Eyf-BVci6VKLri4VBePemlt7gq1bVWqvK4UH3Ow-oVKg/exec";
 
@@ -98,10 +99,9 @@
             return "Rp " + angka.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ".");
         };
 
-        // FUNGSI PENGUBAH OTOMATIS KE FORMAT 62
         function formatKe62(no) {
             if (!no) return "";
-            let cleaned = no.replace(/[^0-9]/g, ''); // bersihkan karakter non-angka
+            let cleaned = no.replace(/[^0-9]/g, ''); 
             if (cleaned.startsWith('0')) {
                 cleaned = '62' + cleaned.slice(1);
             } else if (cleaned.startsWith('8')) {
@@ -114,9 +114,12 @@
             const urlParams = new URLSearchParams(window.location.search);
             const hargaDasarInput = parseInt(urlParams.get('harga')) || 0;
             
-            // Tangkap nomor hp pelanggan dan paksa ubah format ke 62
             let nohpInput = urlParams.get('nohp') || ""; 
             nomorPelanggan = formatKe62(nohpInput);
+
+            // Perbaikan: Ambil invoice dari URL parameter (?harga=51000&nohp=...&invoice=INV123)
+            // Jika di URL tidak ada invoice, otomatis diisi tanda strip "-" agar script tidak error
+            noInvoice = urlParams.get('invoice') || "-"; 
 
             if (hargaDasarInput > 0) {
                 const angkaUnikAcak = Math.floor(Math.random() * (199 - 100 + 1)) + 100;
@@ -135,12 +138,11 @@
         const checkInterval = setInterval(() => {
             if (targetNominal <= 0) return; 
 
-            // Tambahkan &invoice_id agar Apps Script tahu nomor invoice mana yang dicari
+            // Sekarang noInvoice sudah aman digunakan di sini
             fetch(`${serverUrl}?check_nominal=${targetNominal}&invoice_id=${noInvoice}`)
                 .then(response => response.json())
                 .then(data => {
                     if (data && data.status === "SUCCESS") {
-                        // Teruskan url download ke fungsi sukses
                         prosesPembayaranSukses(data.download_url);
                     }
                 }).catch(()=>{});
@@ -163,19 +165,12 @@
             clearInterval(checkInterval);
             tutupModalQRIS(); 
             
-            // Menggunakan url dari server, jika kosong otomatis arahkan ke folder utama
             const finalDownloadLink = downloadUrl || "https://drive.google.com/drive/folders/1NLtMxS5Xj2V7C43UGgwpppQR88UKegw6";
-
-            // Format Pesan WhatsApp persis seperti permintaan Anda
             const pesanWA = `Halo, Terima kasih atas kepercayaan Anda kepada Kamboja Printing. Pembayaran sebesar ${formatRupiah(targetNominal)} telah kami terima untuk Invoice: ${noInvoice}. silahkan klik link berikut ini untuk download kwitansi anda : ${finalDownloadLink}`;
             
-            // Kirim WhatsApp otomatis ke pelanggan
             kirimWhatsApp(nomorPelanggan, pesanWA);
-            
-            // Notifikasi internal untuk owner
             kirimWhatsApp(nomorOwner, `NOTIFIKASI INTERNAL:\nPembayaran LUNAS untuk Invoice ${noInvoice} sebesar ${formatRupiah(targetNominal)}. Link file: ${finalDownloadLink}`);
 
-            // Tampilan sukses standar (tanpa tombol download tambahan di Vercel)
             document.body.innerHTML = `
                 <div class="flex items-center justify-center min-h-screen p-4 w-full">
                     <div class="bg-white p-6 rounded-2xl shadow-xl max-w-sm w-full text-center border border-gray-100">
@@ -200,7 +195,7 @@
             const formData = new FormData();
             formData.append('target', target);
             formData.append('message', pesan);
-            formData.append('delay', '2'); // Menghindari spam block Fonnte
+            formData.append('delay', '2'); 
 
             fetch('https://api.fonnte.com/send', {
                 method: 'POST',
