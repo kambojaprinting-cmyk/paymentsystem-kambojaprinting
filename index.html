@@ -24,7 +24,7 @@
         <h2 class="text-xs font-bold text-gray-400 uppercase tracking-wider mb-2">Total Pembayaran</h2>
         
         <div class="bg-blue-50/50 p-5 rounded-xl border border-blue-100 mb-5 text-center">
-            <div id="display-nominal" class="text-3xl font-black text-blue-700 tracking-tight my-1">Rp 51.164</div>
+            <div id="display-nominal" class="text-3xl font-black text-blue-700 tracking-tight my-1">Rp 51.197</div>
             <p class="text-[9px] text-amber-600 mt-2 font-semibold leading-tight animate-pulse">
                 PENTING: Mohon transfer TEPAT sesuai nominal di atas (Termasuk 3 Angka Terakhir) agar sistem mendeteksi otomatis!
             </p>
@@ -78,7 +78,7 @@
             <h3 class="text-sm font-bold text-gray-700 mb-1">Scan QRIS Kamboja Printing</h3>
             <p class="text-[10px] text-amber-600 font-bold mb-2 text-center leading-tight">
                 PERINGATAN: Pastikan nominal transfer pas sebesar:<br>
-                <span id="modal-nominal-warning" class="text-sm text-blue-600 font-extrabold bg-blue-50 px-3 py-0.5 rounded border border-blue-100 inline-block mt-1">Rp 51.164</span>
+                <span id="modal-nominal-warning" class="text-sm text-blue-600 font-extrabold bg-blue-50 px-3 py-0.5 rounded border border-blue-100 inline-block mt-1">Rp 51.197</span>
             </p>
             <div class="w-full aspect-square bg-white border border-gray-200 rounded-xl overflow-hidden p-1">
                 <img src="./Selesaikan Pembayaran Anda_files/1782103719421.jpg" alt="QRIS Kamboja Printing" class="w-full h-full object-contain">
@@ -135,11 +135,13 @@
         const checkInterval = setInterval(() => {
             if (targetNominal <= 0) return; 
 
-            fetch(`${serverUrl}?check_nominal=${targetNominal}`)
+            // Tambahkan &invoice_id agar Apps Script tahu nomor invoice mana yang dicari
+            fetch(`${serverUrl}?check_nominal=${targetNominal}&invoice_id=${noInvoice}`)
                 .then(response => response.json())
                 .then(data => {
                     if (data && data.status === "SUCCESS") {
-                        prosesPembayaranSukses();
+                        // Teruskan url download ke fungsi sukses
+                        prosesPembayaranSukses(data.download_url);
                     }
                 }).catch(()=>{});
         }, 4000);
@@ -157,14 +159,23 @@
             modal.classList.add('opacity-0', 'pointer-events-none');
         }
 
-        function prosesPembayaranSukses() {
+        function prosesPembayaranSukses(downloadUrl) {
             clearInterval(checkInterval);
             tutupModalQRIS(); 
             
-            // Kirim WhatsApp otomatis (Sekarang format nomor sudah pasti benar 62)
-            kirimWhatsApp(nomorPelanggan, `Halo, Terima kasih atas kepercayaan anda kepada Kamboja Printing. Pembayaran sebesar ${formatRupiah(targetNominal)} telah kami terima dan pesanan Anda sedang diproses.`);
-            kirimWhatsApp(nomorOwner, `NOTIFIKASI INTERNAL KAMBOJA PRINTING:\nPembayaran baru masuk sebesar ${formatRupiah(targetNominal)} dari nomor pelanggan (${nomorPelanggan || 'Tanpa Nomor'}). Status: BERHASIL LUNAS.`);
+            // Menggunakan url dari server, jika kosong otomatis arahkan ke folder utama
+            const finalDownloadLink = downloadUrl || "https://drive.google.com/drive/folders/1NLtMxS5Xj2V7C43UGgwpppQR88UKegw6";
 
+            // Format Pesan WhatsApp persis seperti permintaan Anda
+            const pesanWA = `Halo, Terima kasih atas kepercayaan Anda kepada Kamboja Printing. Pembayaran sebesar ${formatRupiah(targetNominal)} telah kami terima untuk Invoice: ${noInvoice}. silahkan klik link berikut ini untuk download kwitansi anda : ${finalDownloadLink}`;
+            
+            // Kirim WhatsApp otomatis ke pelanggan
+            kirimWhatsApp(nomorPelanggan, pesanWA);
+            
+            // Notifikasi internal untuk owner
+            kirimWhatsApp(nomorOwner, `NOTIFIKASI INTERNAL:\nPembayaran LUNAS untuk Invoice ${noInvoice} sebesar ${formatRupiah(targetNominal)}. Link file: ${finalDownloadLink}`);
+
+            // Tampilan sukses standar (tanpa tombol download tambahan di Vercel)
             document.body.innerHTML = `
                 <div class="flex items-center justify-center min-h-screen p-4 w-full">
                     <div class="bg-white p-6 rounded-2xl shadow-xl max-w-sm w-full text-center border border-gray-100">
@@ -174,7 +185,7 @@
                             </svg>
                         </div>
                         <h2 class="text-xl font-bold text-gray-800 mb-1">Pembayaran Sukses!</h2>
-                        <p class="text-gray-500 text-xs mb-5">Sistem mendeteksi pembayaran Anda.</p>
+                        <p class="text-gray-500 text-xs mb-4">Sistem mendeteksi pembayaran Anda.</p>
                         <p class="text-lg font-bold text-black border-t border-gray-100 pt-4 leading-snug">
                             Terima kasih atas kepercayaan anda kepada KAMBOJA Printing
                         </p>
