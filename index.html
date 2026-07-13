@@ -82,6 +82,7 @@
         let targetNominal = 0;
         let nomorPelanggan = ""; 
         let invoicePelanggan = "";
+        let punyaInvoice = false;
         const nomorOwner = "6289515881309"; 
         const waToken = "jyF86YMQm7zncPX1xfrF"; 
         const serverUrl = "https://script.google.com/macros/s/AKfycbydZz2Ylxoozb2uIUXoTG5on3Eyf-BVci6VKLri4VBePemlt7gq1bVWqvK4UH3Ow-oVKg/exec";
@@ -109,8 +110,15 @@
             let nohpInput = urlParams.get('nohp') || ""; 
             nomorPelanggan = formatKe62(nohpInput);
             
-            // Tangkap nomor invoice dari URL
-            invoicePelanggan = urlParams.get('invoice') || "Tanpa Invoice";
+            // Periksa keberadaan parameter invoice
+            const invParam = urlParams.get('invoice');
+            if (invParam && invParam.trim() !== "") {
+                invoicePelanggan = invParam;
+                punyaInvoice = true;
+            } else {
+                invoicePelanggan = "Tanpa Invoice";
+                punyaInvoice = false;
+            }
 
             if (hargaDasarInput > 0) {
                 const angkaUnikAcak = Math.floor(Math.random() * (199 - 100 + 1)) + 100;
@@ -155,31 +163,43 @@
             clearInterval(checkInterval);
             tutupModalQRIS(); 
             
-            // Tampilkan animasi loading sementara sistem mencari file kwitansi spesifik
+            // JIKA TIDAK ADA INVOICE: Kirim teks polos biasa tanpa melakukan fetch ke Apps Script
+            if (!punyaInvoice) {
+                document.getElementById("status-text").innerText = "Pembayaran sukses! Mengirimkan notifikasi...";
+                
+                const pesanPolosPelanggan = `Halo kakak, Terima kasih atas kepercayaan Anda kepada Kamboja Printing. Pembayaran sebesar ${formatRupiah(targetNominal)} telah kami terima dengan sukses.`;
+                const pesanPolosOwner = `NOTIFIKASI INTERNAL KAMBOJA PRINTING:\nPembayaran baru masuk sebesar ${formatRupiah(targetNominal)} dari nomor pelanggan (${nomorPelanggan || 'Tanpa Nomor'}) tanpa nomor invoice. Status: BERHASIL.`;
+                
+                kirimWhatsApp(nomorPelanggan, pesanPolosPelanggan);
+                kirimWhatsApp(nomorOwner, pesanPolosOwner);
+                
+                tampilkanHalamanSukses();
+                return;
+            }
+
+            // JIKA ADA INVOICE: Jalankan alur pencarian link file spesifik seperti sebelumnya
             document.getElementById("status-text").innerText = "Pembayaran sukses! Mengambil tautan kwitansi Anda...";
 
-            // Ambil link file spesifik dari Google Apps Script berdasarkan nomor invoice
             fetch(`${serverUrl}?get_file_link=true&invoice_name=${encodeURIComponent(invoicePelanggan)}`)
                 .then(response => response.json())
                 .then(data => {
                     const linkKwitansiSpesifik = data.link || `https://drive.google.com/drive/folders/${driveFolderId}`;
                     
-                    // Susun template pesan dinamis ke pelanggan dengan link file spesifik
                     const pesanPelanggan = `Halo kakak, Terima kasih atas kepercayaan Anda kepada Kamboja Printing. Pembayaran sebesar ${formatRupiah(targetNominal)} telah kami terima untuk Invoice: ${invoicePelanggan}.\n\nlink kwitansi : ${linkKwitansiSpesifik}`;
+                    const pesanOwner = `NOTIFIKASI INTERNAL KAMBOJA PRINTING:\nPembayaran baru masuk sebesar ${formatRupiah(targetNominal)} dari nomor pelanggan (${nomorPelanggan || 'Tanpa Nomor'}) untuk Invoice: ${invoicePelanggan}. Status: BERHASIL.`;
                     
-                    // Kirim pesan WhatsApp otomatis
                     kirimWhatsApp(nomorPelanggan, pesanPelanggan);
-                    kirimWhatsApp(nomorOwner, `NOTIFIKASI INTERNAL KAMBOJA PRINTING:\nPembayaran baru masuk sebesar ${formatRupiah(targetNominal)} dari nomor pelanggan (${nomorPelanggan || 'Tanpa Nomor'}) untuk Invoice: ${invoicePelanggan}. Status: BERHASIL LUNAS.`);
+                    kirimWhatsApp(nomorOwner, pesanOwner);
 
-                    // Ubah tampilan halaman menjadi Sukses Berhasil
                     tampilkanHalamanSukses();
                 })
                 .catch(err => {
-                    console.error("Gagal mengambil link spesifik, menggunakan link folder:", err);
-                    // Jika gagal/error, fallback menggunakan link folder default agar sistem tidak macet
+                    console.error("Gagal mengambil link spesifik:", err);
                     const linkFallback = `https://drive.google.com/drive/folders/${driveFolderId}`;
+                    
                     kirimWhatsApp(nomorPelanggan, `Halo kakak, Terima kasih atas kepercayaan Anda kepada Kamboja Printing. Pembayaran sebesar ${formatRupiah(targetNominal)} telah kami terima untuk Invoice: ${invoicePelanggan}.\n\nlink kwitansi : ${linkFallback}`);
                     kirimWhatsApp(nomorOwner, `NOTIFIKASI INTERNAL (ERROR LINK):\nPembayaran ${formatRupiah(targetNominal)} sukses dari ${nomorPelanggan}, namun sistem gagal mencari link file spesifik.`);
+                    
                     tampilkanHalamanSukses();
                 });
         }
